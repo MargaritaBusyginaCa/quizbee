@@ -117,6 +117,21 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #faa4a6, #fad0c4);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
   }
+
+  .container {
+  background: white;
+  border-radius: 20px;
+  padding: 40px;
+  width: 350px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  text-align: center;
+}
 }

@@ -14,6 +14,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Upload } from "lucide-react";
 
 const formSchema = z.object({
   quizPrompt: z.string().min(2).max(100),
@@ -57,6 +58,7 @@ export function QuizForm() {
                     {...field}
                     className="w-fit"
                   />
+                 <Upload className="cursor-pointer" /> 
                 </FormControl>
                 <FormMessage />
               </FormItem>
