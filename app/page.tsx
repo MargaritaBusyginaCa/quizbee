@@ -128,13 +128,16 @@ export default function Home() {
               <Button
                 variant="secondary"
                 onClick={() => {
-                  setGeneratedQuiz(null);
-                  setSelectedAnswers([]);
-                  setCurrentQuestionIndex(0);
-                  setShowPreview(false);
+                  if (generatedQuiz) {
+                    localStorage.setItem(
+                      "quizbeeEditQuestions",
+                      JSON.stringify(generatedQuiz)
+                    );
+                  }
+                  window.location.href = "/chat";
                 }}
               >
-                Discard
+                Edit Quiz
               </Button>
             </div>
           </div>
