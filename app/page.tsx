@@ -1,4 +1,5 @@
 import { QuizForm } from "@/components/QuizForm";
+import { Upload } from "@/components/Upload";
 
 export default function Home() {
   return (
@@ -6,7 +7,12 @@ export default function Home() {
       <div>
         <h1 className="py-3">Welcome to QuizBee 🐝</h1>
         <QuizForm />
+        <div className="mt-8">
+         <Upload />
+        </div>
       </div>
     </div>
   );
 }
+
+
