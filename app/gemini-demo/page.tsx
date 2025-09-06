@@ -2,9 +2,19 @@
 import { useState } from "react";
 
 export default function GeminiDemo() {
-  const [prompt, setPrompt] = useState(
-    "Make a 1-sentence bedtime story about a unicorn."
-  );
+  // Retrieve QuizForm values from localStorage
+  let quizFormValues = null;
+  if (typeof window !== "undefined") {
+    const stored = localStorage.getItem("quizbeeFormValues");
+    if (stored) quizFormValues = JSON.parse(stored);
+  }
+
+  // Create quiz prompt from localStorage values
+  const defaultPrompt = quizFormValues
+    ? `Create a quiz with the following settings:\nPrompt: ${quizFormValues.quizPrompt}\nDifficulty: ${quizFormValues.difficulty}\nNumber of Questions: ${quizFormValues.numberOfQuestions}`
+    : "Make a 1-sentence bedtime story about a unicorn.";
+
+  const [prompt, setPrompt] = useState(defaultPrompt);
   const [out, setOut] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -42,6 +52,13 @@ export default function GeminiDemo() {
       >
         {loading ? "Running…" : "Run"}
       </button>
+      <h2 className="font-semibold mt-6">QuizForm values from localStorage:</h2>
+      <pre className="whitespace-pre-wrap border rounded p-3 min-h-24">
+        {quizFormValues
+          ? JSON.stringify(quizFormValues, null, 2)
+          : "No QuizForm values found in localStorage."}
+      </pre>
+      <h2 className="font-semibold mt-6">AI Output:</h2>
       <pre className="whitespace-pre-wrap border rounded p-3 min-h-24">
         {out}
       </pre>
