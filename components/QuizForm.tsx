@@ -4,7 +4,7 @@ import React from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-
+import { FileUpload } from "@/components/FileUpload";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -145,18 +145,14 @@ export function QuizForm({ defaultValues, onSubmit, isSubmitting }: Props) {
                 Upload PDF/Syllabus (optional)
               </FormLabel>
               <FormControl>
-                <Input
-                  type="file"
+                <FileUpload
+                  value={(field.value as File | null) ?? null}
+                  onChange={(file) => field.onChange(file)}
                   accept=".pdf"
-                  onChange={(e) => field.onChange(e.target.files?.[0])}
+                  maxSizeMB={10}
                 />
               </FormControl>
               <FormMessage />
-              {field.value instanceof File && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Selected: {field.value.name}
-                </p>
-              )}
             </FormItem>
           )}
         />

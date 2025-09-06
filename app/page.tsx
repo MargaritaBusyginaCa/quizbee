@@ -20,35 +20,34 @@ export default function CreateQuizPage() {
   const [subject, setSubject] = useState("");
 
   const handleGenerate = async (values: QuizFormValues) => {
-    setIsLoading(true);
-    setGeneratedQuiz(null);
-    setSelectedAnswers([]);
-    setCurrentQuestionIndex(0);
-    setSubject(values.subject);
-
-    const formData = new FormData();
-    formData.append("subject", values.subject);
-    formData.append("difficulty", values.difficulty); // send text; API handles both text/number
-    formData.append("numQuestions", String(values.numberOfQuestions));
-    if (values.pdfFile instanceof File) {
-      formData.append("pdfFile", values.pdfFile);
-    }
-
-    try {
-      const res = await fetch("/api/generate-quiz", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to generate quiz.");
-      if (!Array.isArray(data.quiz))
-        throw new Error("Invalid quiz format from API.");
-      setGeneratedQuiz(data.quiz);
-    } catch (e: any) {
-      alert(e.message || "Failed to generate quiz.");
-    } finally {
-      setIsLoading(false);
-    }
+    console.log("geenrate quiz with", values);
+    // setIsLoading(true);
+    // setGeneratedQuiz(null);
+    // setSelectedAnswers([]);
+    // setCurrentQuestionIndex(0);
+    // setSubject(values.subject);
+    // const formData = new FormData();
+    // formData.append("subject", values.subject);
+    // formData.append("difficulty", values.difficulty); // send text; API handles both text/number
+    // formData.append("numQuestions", String(values.numberOfQuestions));
+    // if (values.pdfFile instanceof File) {
+    //   formData.append("pdfFile", values.pdfFile);
+    // }
+    // try {
+    //   const res = await fetch("/api/generate-quiz", {
+    //     method: "POST",
+    //     body: formData,
+    //   });
+    //   const data = await res.json();
+    //   if (!res.ok) throw new Error(data.error || "Failed to generate quiz.");
+    //   if (!Array.isArray(data.quiz))
+    //     throw new Error("Invalid quiz format from API.");
+    //   setGeneratedQuiz(data.quiz);
+    // } catch (e: any) {
+    //   alert(e.message || "Failed to generate quiz.");
+    // } finally {
+    //   setIsLoading(false);
+    // }
   };
 
   const handleAnswerSelect = (option: string) => {
