@@ -1,102 +1,108 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { NextRequest, NextResponse } from "next/server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Ensure you have GOOGLE_API_KEY in your .env.local file
+export const runtime = "nodejs"; // pdf-parse needs Node
+
 const GEMINI_API_KEY = process.env.GOOGLE_API_KEY;
-
 if (!GEMINI_API_KEY) {
-  throw new Error('GOOGLE_API_KEY is not set in the environment variables.');
+  throw new Error("GOOGLE_API_KEY is not set in the environment variables.");
 }
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); // Using gemini-pro for now, can switch to flash if preferred after testing
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const subject = formData.get('subject');
-    const difficulty = formData.get('difficulty'); // This will be a string from the frontend
-    const numQuestions = formData.get('numQuestions');
-    const pdfFile = formData.get('pdfFile') as File | null;
+    const subject = formData.get("subject")?.toString();
+    const difficultyRaw = formData.get("difficulty")?.toString() ?? "medium";
+    const numQuestionsStr = formData.get("numQuestions")?.toString() ?? "10";
+    const pdfFile = formData.get("pdfFile") as File | null;
 
-    if (!subject || !numQuestions) {
-      return NextResponse.json({ error: 'Missing required form fields (subject or number of questions).' }, { status: 400 });
+    if (!subject || !numQuestionsStr) {
+      return NextResponse.json(
+        {
+          error:
+            "Missing required form fields (subject or number of questions).",
+        },
+        { status: 400 }
+      );
     }
 
-    let extractedPdfText = '';
+    const numQuestions = parseInt(numQuestionsStr, 10);
+
+    let extractedPdfText = "";
     if (pdfFile) {
-      // 1. Extract text from PDF
       const arrayBuffer = await pdfFile.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
-      const data = await (await import('pdf-parse')).default(buffer); // Dynamically import pdf-parse
+      const data = (await (await import("pdf-parse")).default(buffer)) as {
+        text: string;
+      };
       extractedPdfText = data.text;
     }
 
-    // 2. Construct Prompt
-    const difficultyText = parseFloat(difficulty as string) < 33 ? "Easy" : parseFloat(difficulty as string) < 66 ? "Medium" : "Hard";
-    
-    let prompt = `
-      You are an expert quiz generator. Create a multiple-choice quiz based on the provided information.
-      Subject: ${subject}
-      Difficulty: ${difficultyText}
-      Number of questions: ${numQuestions}
-      Include a few 'trick' questions that require careful reading, but are not unfairly misleading.
-      Format the output as a JSON array of question objects. Each question object should have:
-      - 'questionText': The text of the question.
-      - 'options': An array of 4 strings for multiple-choice options.
-      - 'correctAnswer': The string of the correct option.
-      Example: [
-        {
-          "questionText": "What is the capital of France?",
-          "options": ["Berlin", "Madrid", "Paris", "Rome"],
-          "correctAnswer": "Paris"
-        }
-      ]
-    `;
-
-    if (extractedPdfText) {
-      prompt += `
-
-      Text Content for Quiz Generation:
-      \`\`\`
-      ${extractedPdfText}
-      \`\`\`
-      `;
+    // normalize difficulty
+    let difficultyText: "Easy" | "Medium" | "Hard";
+    if (["easy", "medium", "hard"].includes(difficultyRaw)) {
+      difficultyText = (difficultyRaw[0].toUpperCase() +
+        difficultyRaw.slice(1)) as "Easy" | "Medium" | "Hard";
     } else {
-      prompt += `
-
-      Since no specific text content was provided, generate questions based on general knowledge for the given subject and difficulty.
-      `;
+      const n = Number(difficultyRaw);
+      difficultyText = n < 33 ? "Easy" : n < 66 ? "Medium" : "Hard";
     }
 
-    // 3. Call Gemini AI Model
+    const prompt = `
+You are an expert quiz generator. Create a multiple-choice quiz as pure JSON (no prose before or after).
+Subject: ${subject}
+Difficulty: ${difficultyText}
+Number of questions: ${numQuestions}
+Include a few fair 'trick' questions that require careful reading.
+Return ONLY a JSON array of question objects with keys: "questionText", "options" (4 strings), "correctAnswer".
+${
+  extractedPdfText
+    ? `Use ONLY the following source text:\n"""${extractedPdfText}"""`
+    : `No source text provided. Use general knowledge for the subject and difficulty.`
+}
+    `.trim();
+
     const result = await model.generateContent(prompt);
-    const response = result.response;
-    const text = response.text();
+    const text = result.response.text();
 
-    // 4. Parse AI Response (expecting JSON)
-    let generatedQuiz;
+    // Try to parse as JSON (with or without ```json fences)
+    let generatedQuiz: unknown;
     try {
-      // Attempt to clean and parse the JSON, as AI responses can sometimes include extra text
-      const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/);
-      if (jsonMatch && jsonMatch[1]) {
-        generatedQuiz = JSON.parse(jsonMatch[1]);
-      } else {
-        // Fallback if the code block isn't present, try to parse directly
-        generatedQuiz = JSON.parse(text);
-      }
-    } catch (parseError) {
-      console.error('Failed to parse AI response as JSON:', text, parseError);
-      return NextResponse.json({ error: 'Failed to parse AI response. Generated text was not valid JSON.', aiResponse: text }, { status: 500 });
+      const fenced = text.match(/```json\s*([\s\S]*?)```/i);
+      generatedQuiz = JSON.parse(fenced ? fenced[1] : text);
+    } catch (e) {
+      return NextResponse.json(
+        {
+          error:
+            "Failed to parse AI response. Generated text was not valid JSON.",
+          aiResponse: text,
+        },
+        { status: 500 }
+      );
     }
 
-    console.log('Generated Quiz:', generatedQuiz);
+    if (!Array.isArray(generatedQuiz)) {
+      return NextResponse.json(
+        {
+          error: "Model did not return a JSON array of questions.",
+          aiResponse: text,
+        },
+        { status: 500 }
+      );
+    }
 
-    // TODO: Save generatedQuiz to database if persistent storage is enabled
-
-    return NextResponse.json({ message: 'Quiz generated successfully!', quiz: generatedQuiz }, { status: 200 });
-  } catch (error) {
-    console.error('Error generating quiz:', error);
-    return NextResponse.json({ error: 'Failed to generate quiz.', details: (error as Error).message }, { status: 500 });
+    return NextResponse.json(
+      { message: "Quiz generated successfully!", quiz: generatedQuiz },
+      { status: 200 }
+    );
+  } catch (error: any) {
+    console.error("Error generating quiz:", error);
+    return NextResponse.json(
+      { error: "Failed to generate quiz.", details: error.message },
+      { status: 500 }
+    );
   }
 }

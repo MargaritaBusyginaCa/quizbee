@@ -1,11 +1,12 @@
 "use client";
 
+import React from "react";
 import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import React, { useState } from "react";
 import { Slider } from "@/components/ui/slider";
 import {
   Form,
@@ -15,7 +16,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-
 import {
   Select,
   SelectContent,
@@ -24,127 +24,147 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+/** Use the same field names the API expects */
 const formSchema = z.object({
-  quizPrompt: z
+  subject: z
     .string()
     .min(2, { message: "Too short" })
     .max(100, { message: "Too long" }),
-  numberOfQuestions: z.number().min(1).max(25),
+  numberOfQuestions: z.coerce.number().min(1).max(25),
   difficulty: z.enum(["easy", "medium", "hard"]),
+  pdfFile: z.instanceof(File).optional(),
 });
 
-export function QuizForm() {
-  const questionOptions = [5, 10, 15, 20, 25];
-  // Helper for mapping difficulty value to slider and vice versa
-  function getSliderValue(difficulty: string) {
-    if (difficulty === "easy") return 0;
-    if (difficulty === "medium") return 50;
-    return 100;
-  }
+export type QuizFormValues = z.infer<typeof formSchema>;
 
-  function handleSliderChange(field: any, value: number[]) {
-    const v = value[0];
-    if (v === 0) field.onChange("easy");
-    else if (v === 50) field.onChange("medium");
-    else field.onChange("hard");
-  }
-  const form = useForm<z.infer<typeof formSchema>>({
+type Props = {
+  defaultValues?: Partial<QuizFormValues>;
+  onSubmit: (values: QuizFormValues) => Promise<void> | void;
+  isSubmitting?: boolean;
+};
+
+export function QuizForm({ defaultValues, onSubmit, isSubmitting }: Props) {
+  const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      quizPrompt: "",
-      numberOfQuestions: 5,
-      difficulty: "easy",
+      subject: "",
+      numberOfQuestions: 10,
+      difficulty: "medium",
+      ...defaultValues,
     },
   });
 
-  // 2. Define a submit handler.
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // Do something with the form values.
-    // ✅ This will be type-safe and validated.
-    console.log(values);
-  }
+  const getSliderValue = (d: QuizFormValues["difficulty"]) =>
+    d === "easy" ? 0 : d === "medium" ? 50 : 100;
+
+  const setDifficultyFromSlider = (value: number[]) => {
+    const v = value[0];
+    form.setValue("difficulty", v < 33 ? "easy" : v < 66 ? "medium" : "hard", {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+  };
 
   return (
-    <div className="flex justify-center items-center">
-      <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="space-y-8 mx-auto w-[650px]"
-        >
-          <FormField
-            control={form.control}
-            name="quizPrompt"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="py-2">Quiz Prompt</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Enter your quiz prompt"
-                    {...field}
-                    className=""
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="subject"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="py-2">Subject / Topic</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., World History" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="difficulty"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="py-2">Difficulty</FormLabel>
+              <FormControl>
+                <div>
+                  <Slider
+                    value={[getSliderValue(field.value)]}
+                    max={100}
+                    step={50}
+                    onValueChange={setDifficultyFromSlider}
                   />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="difficulty"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="py-2">Quiz Difficulty</FormLabel>
-                <FormControl>
-                  <div>
-                    <Slider
-                      value={[getSliderValue(field.value)]}
-                      max={100}
-                      step={50}
-                      onValueChange={(value) =>
-                        handleSliderChange(field, value)
-                      }
-                    />
-                    <div className="flex justify-between mt-2 text-sm text-gray-500">
-                      <span>Easy</span>
-                      <span>Medium</span>
-                      <span>Hard</span>
-                    </div>
+                  <div className="flex justify-between mt-2 text-sm text-gray-500">
+                    <span>Easy</span>
+                    <span>Medium</span>
+                    <span>Hard</span>
                   </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-          <FormField
-            control={form.control}
-            name="numberOfQuestions"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="py-2">Number of Questions</FormLabel>
+        <FormField
+          control={form.control}
+          name="numberOfQuestions"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="py-2">Number of Questions</FormLabel>
+              <Select
+                value={String(field.value)}
+                onValueChange={(v) => field.onChange(Number(v))}
+              >
                 <FormControl>
-                  <Select>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Number of questions" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {questionOptions.map((option) => (
-                        <SelectItem key={option} value={option.toString()}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Number of questions" />
+                  </SelectTrigger>
                 </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                <SelectContent>
+                  {[5, 10, 15, 20, 25].map((n) => (
+                    <SelectItem key={n} value={String(n)}>
+                      {n}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-          <Button type="submit">Submit</Button>
-        </form>
-      </Form>
-    </div>
+        <FormField
+          control={form.control}
+          name="pdfFile"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="py-2">
+                Upload PDF/Syllabus (optional)
+              </FormLabel>
+              <FormControl>
+                <Input
+                  type="file"
+                  accept=".pdf"
+                  onChange={(e) => field.onChange(e.target.files?.[0])}
+                />
+              </FormControl>
+              <FormMessage />
+              {field.value instanceof File && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Selected: {field.value.name}
+                </p>
+              )}
+            </FormItem>
+          )}
+        />
+
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Generating..." : "Generate Quiz"}
+        </Button>
+      </form>
+    </Form>
   );
 }
