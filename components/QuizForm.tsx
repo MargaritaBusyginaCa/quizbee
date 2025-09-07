@@ -8,6 +8,7 @@ import { FileUpload } from "@/components/FileUpload";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Slider } from "@/components/ui/slider";
+import { BrainElectricity, BrightStar, Hashtag, Upload } from "iconoir-react";
 import {
   Form,
   FormControl,
@@ -24,7 +25,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-/** Use the same field names the API expects */
 const formSchema = z.object({
   subject: z
     .string()
@@ -73,7 +73,12 @@ export function QuizForm({ defaultValues, onSubmit, isSubmitting }: Props) {
           name="subject"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="py-2">Subject / Topic</FormLabel>
+              <FormLabel className="py-2">
+                <div className="p-1 bg-[#F8F7F2] rounded-sm ">
+                  <BrainElectricity color="#b38a19" height={20} width={20} />
+                </div>
+                <span>Subject / Topic</span>
+              </FormLabel>
               <FormControl>
                 <Input placeholder="e.g., World History" {...field} />
               </FormControl>
@@ -87,7 +92,12 @@ export function QuizForm({ defaultValues, onSubmit, isSubmitting }: Props) {
           name="difficulty"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="py-2">Difficulty</FormLabel>
+              <FormLabel className="py-2">
+                <div className="p-1 bg-[#F8F7F2] rounded-sm ">
+                  <BrightStar color="#b38a19" height={20} width={20} />
+                </div>
+                Difficulty
+              </FormLabel>
               <FormControl>
                 <div>
                   <Slider
@@ -95,6 +105,7 @@ export function QuizForm({ defaultValues, onSubmit, isSubmitting }: Props) {
                     max={100}
                     step={50}
                     onValueChange={setDifficultyFromSlider}
+                    className="[&_[data-slot=slider-range]]:bg-[#b38a19]"
                   />
                   <div className="flex justify-between mt-2 text-sm text-gray-500">
                     <span>Easy</span>
@@ -113,7 +124,12 @@ export function QuizForm({ defaultValues, onSubmit, isSubmitting }: Props) {
           name="numberOfQuestions"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="py-2">Number of Questions</FormLabel>
+              <FormLabel className="py-2">
+                <div className="p-1 bg-[#F8F7F2] rounded-sm ">
+                  <Hashtag color="#b38a19" height={20} width={20} />
+                </div>
+                Number of Questions
+              </FormLabel>
               <Select
                 value={String(field.value)}
                 onValueChange={(v) => field.onChange(Number(v))}
@@ -142,6 +158,9 @@ export function QuizForm({ defaultValues, onSubmit, isSubmitting }: Props) {
           render={({ field }) => (
             <FormItem>
               <FormLabel className="py-2">
+                <div className="p-1 bg-[#F8F7F2] rounded-sm ">
+                  <Upload color="#b38a19" height={20} width={20} />
+                </div>
                 Upload PDF/Syllabus (optional)
               </FormLabel>
               <FormControl>
@@ -157,7 +176,11 @@ export function QuizForm({ defaultValues, onSubmit, isSubmitting }: Props) {
           )}
         />
 
-        <Button type="submit" disabled={isSubmitting}>
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full bg-[#F8F7F2] text-black hover:bg-[#e0d9b3] cursor-pointer"
+        >
           {isSubmitting ? "Generating..." : "Generate Quiz"}
         </Button>
       </form>

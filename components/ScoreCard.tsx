@@ -25,9 +25,9 @@ export default function ScoreCard({
     if (percentage >= 90)
       return { message: "Excellent work! 🌟", color: "text-green-600" };
     if (percentage >= 80)
-      return { message: "Great job! 👏", color: "text-green-500" };
+      return { message: "Great job! 👏", color: "text-pink-500" };
     if (percentage >= 70)
-      return { message: "Good effort! 👍", color: "text-blue-500" };
+      return { message: "Good effort! 👍", color: "text-yellow-600" };
     if (percentage >= 60)
       return { message: "Not bad! 📚", color: "text-yellow-500" };
     return { message: "Keep practicing! 💪", color: "text-orange-500" };
@@ -44,7 +44,7 @@ export default function ScoreCard({
         </CardHeader>
         <CardContent className="text-center space-y-6">
           <div className="space-y-2">
-            <div className="text-6xl font-bold text-blue-600">
+            <div className="text-6xl font-bold text-[#e0a910]-600">
               {score}/{total}
             </div>
             <div className="text-2xl font-semibold text-gray-700">
@@ -62,11 +62,14 @@ export default function ScoreCard({
               <Button
                 onClick={onRetakeQuiz}
                 variant="outline"
-                className="flex-1 max-w-[140px]"
+                className="flex-1 border max-w-[140px] bg-[#F8F7F2] text-black hover:bg-[#e0d9b3] cursor-pointer"
               >
                 Retake Quiz
               </Button>
-              <Button onClick={onNewQuiz} className="flex-1 max-w-[140px]">
+              <Button
+                onClick={onNewQuiz}
+                className="flex-1 border max-w-[140px] bg-[#F8F7F2] text-black hover:bg-[#e0d9b3] cursor-pointer"
+              >
                 New Quiz
               </Button>
             </div>

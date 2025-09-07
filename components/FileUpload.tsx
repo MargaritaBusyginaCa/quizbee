@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 type FileUploadProps = {
   value?: File | null;
   onChange: (file: File | null) => void;
-  accept?: string; // e.g. ".pdf,.docx,image/*"
-  maxSizeMB?: number; // optional guard
+  accept?: string;
+  maxSizeMB?: number;
 };
 
 export function FileUpload({
@@ -51,6 +51,7 @@ export function FileUpload({
         variant="secondary"
         type="button"
         onClick={() => inputRef.current?.click()}
+        className="bg-[#F8F7F2] text-black hover:bg-[#e0d9b3] cursor-pointer"
       >
         Choose file
       </Button>
