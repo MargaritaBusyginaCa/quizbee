@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { QuizForm, type QuizFormValues } from "@/components/QuizForm";
 import PreviewQuestions, {
@@ -97,6 +97,22 @@ export default function Home() {
     : null;
   const totalQuestions = generatedQuiz ? generatedQuiz.length : 0;
 
+  // Restore quiz progress if available
+  useEffect(() => {
+    const stored = localStorage.getItem("quizbeeProgress");
+    if (stored) {
+      try {
+        const progress = JSON.parse(stored);
+        if (progress.generatedQuiz) setGeneratedQuiz(progress.generatedQuiz);
+        if (progress.selectedAnswers)
+          setSelectedAnswers(progress.selectedAnswers);
+        if (typeof progress.currentQuestionIndex === "number")
+          setCurrentQuestionIndex(progress.currentQuestionIndex);
+        if (progress.subject) setSubject(progress.subject);
+      } catch {}
+    }
+  }, []);
+
   return (
     <div className="container mx-auto p-4 my-12 max-w-2xl">
       <h1 className="text-4xl font-bold mb-8 text-center">
@@ -132,6 +148,16 @@ export default function Home() {
                     localStorage.setItem(
                       "quizbeeEditQuestions",
                       JSON.stringify(generatedQuiz)
+                    );
+                    // Save progress for restoration
+                    localStorage.setItem(
+                      "quizbeeProgress",
+                      JSON.stringify({
+                        generatedQuiz,
+                        selectedAnswers,
+                        currentQuestionIndex,
+                        subject,
+                      })
                     );
                   }
                   window.location.href = "/chat";
