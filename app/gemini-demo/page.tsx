@@ -2,14 +2,12 @@
 import { useState } from "react";
 
 export default function GeminiDemo() {
-  // Retrieve QuizForm values from localStorage
   let quizFormValues = null;
   if (typeof window !== "undefined") {
     const stored = localStorage.getItem("quizbeeFormValues");
     if (stored) quizFormValues = JSON.parse(stored);
   }
 
-  // Create quiz prompt from localStorage values
   const defaultPrompt = quizFormValues
     ? `Create a quiz with the following settings:\nPrompt: ${quizFormValues.quizPrompt}\nDifficulty: ${quizFormValues.difficulty}\nNumber of Questions: ${quizFormValues.numberOfQuestions}`
     : "Make a 1-sentence bedtime story about a unicorn.";

@@ -1,113 +1,125 @@
-import { NextRequest, NextResponse } from 'next/server';
+// app/api/chat/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
+export const runtime = "nodejs";
+
+// --- Model setup (keep env var name consistent with generate-quiz) ---
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+if (!GOOGLE_API_KEY) {
+  throw new Error("GOOGLE_API_KEY is not set.");
+}
+const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+// --- Helpers ---
+type QuizQ = { questionText: string; options: string[]; correctAnswer: string };
+
+function fenceOrDirectParse(text: string) {
+  const m = text.match(/```json\s*([\s\S]*?)```/i);
+  const payload = m ? m[1] : text;
+  return JSON.parse(payload);
+}
+
+function shortenQuiz(quiz: unknown, cap = 20): QuizQ[] | null {
+  if (!Array.isArray(quiz)) return null;
+  return quiz.slice(0, cap);
+}
+
+// --- Route ---
 export async function POST(request: NextRequest) {
   try {
-    const { message, context } = await request.json();
+    const body = await request.json().catch(() => ({} as any));
+    const message: string = body?.message;
+    // Accept either meta or context for backwards compat
+    const meta = body?.meta ?? body?.context ?? null;
+    const quiz: QuizQ[] | null = shortenQuiz(body?.quiz, 20);
 
-    if (!message || typeof message !== 'string') {
+    if (!message || typeof message !== "string") {
       return NextResponse.json(
-        { error: 'Message is required and must be a string' },
+        { error: "Message is required and must be a string" },
         { status: 400 }
       );
     }
 
-    const geminiApiKey = process.env.GEMINI_API_KEY;
-    if (!geminiApiKey) {
-      return NextResponse.json(
-        { error: 'Gemini API key not configured' },
-        { status: 500 }
-      );
-    }
+    // System rules: ALWAYS return JSON only.
+    const prompt = `
+You are a quiz-modification assistant.
 
-    // System prompt for quiz modification assistant
-    const systemPrompt = `You are a helpful quiz modification assistant. Your job is to understand user requests about modifying quizzes and provide helpful responses along with structured modification data when applicable.
+Input:
+- User request: ${JSON.stringify(message)}
+- Current quiz (optional, truncated): ${quiz ? JSON.stringify(quiz) : "none"}
+- Meta (optional): ${meta ? JSON.stringify(meta) : "none"}
 
-When users ask to modify quizzes, you should:
-1. Provide a conversational response explaining what you'll do
-2. If the request involves specific modifications, include a "modification" object in your response
-
-Common modification types:
-- "add more questions" -> increase question count
-- "make it harder/easier" -> change difficulty level
-- "change topic" -> update quiz subject
-- "fewer questions" -> decrease question count
-
-For modification requests, respond with JSON in this format:
+Output: JSON ONLY (no prose outside JSON). Choose one or more of:
+1) A plan:
 {
-  "content": "Your conversational response here",
+  "content": "<brief confirmation>",
   "modification": {
-    "type": "difficulty|count|topic|other",
-    "action": "increase|decrease|change",
-    "value": "new_value_if_applicable"
+    "type": "difficulty" | "topic" | "count" | "append" | "other",
+    "action": "increase" | "decrease" | "change",
+    "value": "<new value if applicable>",
+    "count": 5,              // for type=append (number of new questions)
+    "subtopic": "..."        // optional hint for generation
   }
 }
 
-For general conversation, just respond with:
+2) Direct in-place edits to the current quiz:
 {
-  "content": "Your conversational response here"
+  "content": "<brief confirmation>",
+  "patches": [
+    { "op": "replace", "index": 2, "question": { "questionText": "...", "options": ["a","b","c","d"], "correctAnswer": "a" } },
+    { "op": "update", "index": 0, "question": { "questionText": "..." } },
+    { "op": "delete", "index": 4 },
+    { "op": "insertAfter", "index": 1, "question": { ... } }
+  ]
 }
 
-User message: ${message}`;
+3) A full replacement quiz:
+{
+  "content": "<brief>",
+  "quiz": [ { "questionText": "...", "options": ["...","...","...","..."], "correctAnswer": "..." } ]
+}
 
-    // Call Gemini API
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-goog-api-key': geminiApiKey,
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: systemPrompt
-              }
-            ]
-          }
-        ]
-      }),
-    });
+Rules:
+- Each "options" array must have exactly 4 strings and one "correctAnswer" that matches one option.
+- Use "patches" when the user asks to tweak specific questions; use "modification" when they ask to change topic, difficulty, or question count; use "quiz" when rewriting everything.
+`.trim();
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Gemini API error:', errorData);
-      return NextResponse.json(
-        { error: 'Failed to get chat response' },
-        { status: 500 }
-      );
-    }
+    const resp = await model.generateContent(prompt);
+    const text = resp.response.text();
 
-    const data = await response.json();
-    const generatedContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!generatedContent) {
-      return NextResponse.json(
-        { error: 'No response generated' },
-        { status: 500 }
-      );
-    }
-
-    // Try to parse as JSON, fallback to plain text response
-    let parsedResponse;
+    let parsed: any;
     try {
-      parsedResponse = JSON.parse(generatedContent);
+      parsed = fenceOrDirectParse(text);
     } catch {
-      parsedResponse = {
-        content: generatedContent
-      };
+      // Fallback: wrap as plain content if the model didn't return valid JSON
+      parsed = { content: text };
     }
 
-    return NextResponse.json({
-      success: true,
-      ...parsedResponse,
-      timestamp: new Date().toISOString()
-    });
+    // Basic shape safety
+    if (parsed?.quiz && !Array.isArray(parsed.quiz)) {
+      delete parsed.quiz;
+    }
+    if (parsed?.modification && typeof parsed.modification !== "object") {
+      delete parsed.modification;
+    }
+    if (typeof parsed?.content !== "string") {
+      parsed.content = String(parsed?.content ?? "");
+    }
 
-  } catch (error) {
-    console.error('Chat API error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      {
+        success: true,
+        ...parsed,
+        timestamp: new Date().toISOString(),
+      },
+      { status: 200 }
+    );
+  } catch (err: any) {
+    console.error("Chat API error:", err);
+    return NextResponse.json(
+      { error: "Internal server error", details: err?.message || String(err) },
       { status: 500 }
     );
   }
