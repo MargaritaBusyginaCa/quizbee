@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { QuizForm, type QuizFormValues } from "@/components/QuizForm";
+import PreviewQuestions from "@/components/PreviewQuestions";
 
 type QuizQuestion = {
   questionText: string;
@@ -23,6 +24,7 @@ export default function Home() {
   const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [subject, setSubject] = useState("");
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
 
   // ---- Hydrate from localStorage on mount and when window regains focus ----
   useEffect(() => {
@@ -33,9 +35,14 @@ export default function Home() {
           const parsed = JSON.parse(storedQuiz);
           if (Array.isArray(parsed)) {
             setGeneratedQuiz(parsed);
-            // reset progress when loading a stored quiz
-            setSelectedAnswers([]);
-            setCurrentQuestionIndex(0);
+            // Only reset progress if we don't have a quiz loaded yet
+            setGeneratedQuiz((prev) => {
+              if (!prev) {
+                setSelectedAnswers([]);
+                setCurrentQuestionIndex(0);
+              }
+              return parsed;
+            });
           }
         }
         const lf = localStorage.getItem(LS_FORM);
@@ -182,65 +189,88 @@ export default function Home() {
         </>
       )}
 
-      {generatedQuiz && currentQuestion && (
+      {generatedQuiz && (
         <div className="mt-8 space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-3xl font-bold text-center">Quiz: {subject}</h2>
-            <Button variant="secondary" onClick={handleDiscard}>
-              Discard
-            </Button>
-          </div>
-
-          <div className="text-center text-gray-600">
-            Question {currentQuestionIndex + 1} of {totalQuestions}
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <p className="text-xl font-semibold mb-4">
-              {currentQuestion.questionText}
-            </p>
-            <div className="space-y-3">
-              {currentQuestion.options.map((option, idx) => (
-                <label key={idx} className="flex items-center">
-                  <input
-                    type="radio"
-                    name="quiz-option"
-                    value={option}
-                    checked={selectedAnswers[currentQuestionIndex] === option}
-                    onChange={() => handleAnswerSelect(option)}
-                    className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-lg font-medium text-gray-800">
-                    {option}
-                  </span>
-                </label>
-              ))}
+            <div className="flex gap-2">
+              <Button
+                variant={isPreviewMode ? "default" : "outline"}
+                onClick={() => setIsPreviewMode(!isPreviewMode)}
+              >
+                {isPreviewMode ? "Take Quiz" : "Preview All"}
+              </Button>
+              <Button variant="secondary" onClick={handleDiscard}>
+                Leave this quiz
+              </Button>
             </div>
           </div>
 
-          <div className="flex justify-between mt-6">
-            <Button
-              onClick={handlePreviousQuestion}
-              disabled={currentQuestionIndex === 0}
-            >
-              Previous
-            </Button>
-            {currentQuestionIndex < totalQuestions - 1 ? (
-              <Button
-                onClick={handleNextQuestion}
-                disabled={!selectedAnswers[currentQuestionIndex]}
-              >
-                Next
-              </Button>
-            ) : (
-              <Button
-                onClick={handleSubmitQuiz}
-                disabled={!selectedAnswers[currentQuestionIndex]}
-              >
-                Submit Quiz
-              </Button>
-            )}
-          </div>
+          {isPreviewMode ? (
+            <div className="space-y-4">
+              <div className="text-center text-gray-600">
+                Previewing all {generatedQuiz.length} questions
+              </div>
+              <PreviewQuestions questions={generatedQuiz} />
+            </div>
+          ) : (
+            currentQuestion && (
+              <>
+                <div className="text-center text-gray-600">
+                  Question {currentQuestionIndex + 1} of {totalQuestions}
+                </div>
+
+                <div className="bg-white p-6 rounded-lg shadow-md">
+                  <p className="text-xl font-semibold mb-4">
+                    {currentQuestion.questionText}
+                  </p>
+                  <div className="space-y-3">
+                    {currentQuestion.options.map((option, idx) => (
+                      <label key={idx} className="flex items-center">
+                        <input
+                          type="radio"
+                          name="quiz-option"
+                          value={option}
+                          checked={
+                            selectedAnswers[currentQuestionIndex] === option
+                          }
+                          onChange={() => handleAnswerSelect(option)}
+                          className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-lg font-medium text-gray-800">
+                          {option}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex justify-between mt-6">
+                  <Button
+                    onClick={handlePreviousQuestion}
+                    disabled={currentQuestionIndex === 0}
+                  >
+                    Previous
+                  </Button>
+                  {currentQuestionIndex < totalQuestions - 1 ? (
+                    <Button
+                      onClick={handleNextQuestion}
+                      disabled={!selectedAnswers[currentQuestionIndex]}
+                    >
+                      Next
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleSubmitQuiz}
+                      disabled={!selectedAnswers[currentQuestionIndex]}
+                    >
+                      Submit Quiz
+                    </Button>
+                  )}
+                </div>
+              </>
+            )
+          )}
 
           {/* Link to chat */}
           <div className="text-center">
@@ -248,7 +278,7 @@ export default function Home() {
               href="/chat"
               className="text-blue-600 hover:text-blue-800 font-medium"
             >
-              Modify in Chat →
+              Modify this quiz →
             </a>
           </div>
         </div>
