@@ -4,7 +4,6 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export const runtime = "nodejs";
 
-// --- Model setup (keep env var name consistent with generate-quiz) ---
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 if (!GOOGLE_API_KEY) {
   throw new Error("GOOGLE_API_KEY is not set.");
@@ -12,7 +11,6 @@ if (!GOOGLE_API_KEY) {
 const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-// --- Helpers ---
 type QuizQ = { questionText: string; options: string[]; correctAnswer: string };
 
 function fenceOrDirectParse(text: string) {
@@ -26,12 +24,10 @@ function shortenQuiz(quiz: unknown, cap = 20): QuizQ[] | null {
   return quiz.slice(0, cap);
 }
 
-// --- Route ---
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({} as any));
     const message: string = body?.message;
-    // Accept either meta or context for backwards compat
     const meta = body?.meta ?? body?.context ?? null;
     const quiz: QuizQ[] | null = shortenQuiz(body?.quiz, 20);
 
@@ -42,9 +38,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // System rules: ALWAYS return JSON only.
     const prompt = `
-You are a quiz-modification assistant.
+You are a quiz-modification assistant. Analyze the user's request carefully.
 
 Input:
 - User request: ${JSON.stringify(message)}
@@ -60,7 +55,7 @@ Output: JSON ONLY (no prose outside JSON). Choose one or more of:
     "action": "increase" | "decrease" | "change",
     "value": "<new value if applicable>",
     "count": 5,              // for type=append (number of new questions)
-    "subtopic": "..."        // optional hint for generation
+    "subtopic": "..."        // CRITICAL: When adding questions, extract the EXACT specific topic/subject the user mentioned
   }
 }
 
@@ -81,9 +76,14 @@ Output: JSON ONLY (no prose outside JSON). Choose one or more of:
   "quiz": [ { "questionText": "...", "options": ["...","...","...","..."], "correctAnswer": "..." } ]
 }
 
-Rules:
+CRITICAL INSTRUCTIONS:
+- When user says "add questions about X" or "add a question about Y", set type="append" and put the exact topic X or Y in "subtopic"
+- Examples: 
+  * "add questions about photosynthesis" → type="append", subtopic="photosynthesis"
+  * "add a question about World War 2" → type="append", subtopic="World War 2"  
+  * "add more chemistry questions" → type="append", subtopic="chemistry"
 - Each "options" array must have exactly 4 strings and one "correctAnswer" that matches one option.
-- Use "patches" when the user asks to tweak specific questions; use "modification" when they ask to change topic, difficulty, or question count; use "quiz" when rewriting everything.
+- Use "patches" for editing specific questions; use "modification" for topic/difficulty/count changes; use "quiz" for complete rewrites.
 `.trim();
 
     const resp = await model.generateContent(prompt);
@@ -93,11 +93,9 @@ Rules:
     try {
       parsed = fenceOrDirectParse(text);
     } catch {
-      // Fallback: wrap as plain content if the model didn't return valid JSON
       parsed = { content: text };
     }
 
-    // Basic shape safety
     if (parsed?.quiz && !Array.isArray(parsed.quiz)) {
       delete parsed.quiz;
     }
