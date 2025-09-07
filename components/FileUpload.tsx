@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 type FileUploadProps = {
   value?: File | null;
   onChange: (file: File | null) => void;
-  accept?: string; // e.g. ".pdf,.docx,image/*"
-  maxSizeMB?: number; // optional guard
+  accept?: string;
+  maxSizeMB?: number;
 };
 
 export function FileUpload({

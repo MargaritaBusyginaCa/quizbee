@@ -1,4 +1,3 @@
-// app/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -29,7 +28,6 @@ export default function Home() {
   const [isQuizComplete, setIsQuizComplete] = useState(false);
   const [finalScore, setFinalScore] = useState(0);
 
-  // ---- Hydrate from localStorage on mount and when window regains focus ----
   useEffect(() => {
     const hydrate = () => {
       try {
@@ -38,7 +36,6 @@ export default function Home() {
           const parsed = JSON.parse(storedQuiz);
           if (Array.isArray(parsed)) {
             setGeneratedQuiz(parsed);
-            // Only reset progress if we don't have a quiz loaded yet
             setGeneratedQuiz((prev) => {
               if (!prev) {
                 setSelectedAnswers([]);
@@ -187,7 +184,7 @@ export default function Home() {
   const totalQuestions = generatedQuiz ? generatedQuiz.length : 0;
 
   return (
-    <div className="container mx-auto p-4 my-12 max-w-2xl">
+    <div className="container mx-auto p-12 max-w-2xl bg-white rounded-lg shadow-lg">
       <h1 className="text-4xl font-bold mb-8 text-center">
         Welcome to QuizBee 🐝
       </h1>
