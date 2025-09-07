@@ -176,8 +176,13 @@ export default function ChatPage() {
       if (desiredCount > currentLen) {
         const remaining = desiredCount - currentLen;
 
+        // Use subtopic if provided, otherwise use the original subject
+        const effectiveSubject = plan.subtopic ? 
+          `${subject} - ${plan.subtopic}` : 
+          subject;
+
         const body = {
-          subject,
+          subject: effectiveSubject,
           difficulty,
           numQuestions: remaining,
           ...(sourceText ? { sourceText } : {}),
