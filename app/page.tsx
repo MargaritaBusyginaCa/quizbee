@@ -159,6 +159,7 @@ export default function Home() {
     setGeneratedQuiz(null);
     setSelectedAnswers([]);
     setCurrentQuestionIndex(0);
+    setIsPreviewMode(false);
     clearPersistence();
   };
 
@@ -184,7 +185,7 @@ export default function Home() {
   const totalQuestions = generatedQuiz ? generatedQuiz.length : 0;
 
   return (
-    <div className="container mx-auto p-12 max-w-2xl bg-white rounded-lg shadow-lg">
+    <div className="container mx-auto p-12 max-w-4xl bg-white rounded-lg shadow-lg">
       <h1 className="text-2xl font-bold mb-8 text-center">
         Test your knowledge with QuizBee 🐝
       </h1>

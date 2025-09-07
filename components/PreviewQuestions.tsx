@@ -21,18 +21,20 @@ export default function PreviewQuestions({ questions }: PreviewQuestionsProps) {
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
+    <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
       {questions.map((q, idx) => (
-        <Card key={idx} className="p-4 shadow-md">
-          <div className="font-semibold mb-2">
+        <Card key={idx} className="p-6 shadow-md min-w-0">
+          <div className="font-semibold mb-3 break-words">
             Q{idx + 1}: {q.questionText}
           </div>
-          <ul className="mb-2 list-disc pl-6">
+          <ul className="mb-3 list-disc pl-6 space-y-1">
             {q.options.map((opt, i) => (
-              <li key={i}>{opt}</li>
+              <li key={i} className="break-words">
+                {opt}
+              </li>
             ))}
           </ul>
-          <div className="text-xs text-gray-400">
+          <div className="text-xs text-gray-400 break-words">
             Correct: {q.correctAnswer}
           </div>
         </Card>
