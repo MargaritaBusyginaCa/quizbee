@@ -1,3 +1,4 @@
+// app/api/generate-quiz/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
@@ -62,7 +63,7 @@ ${perChunkCap ? `Generate up to ${perChunkCap} questions for this part.` : ""}
 }
 
 // ---- Model ----
-const GEMINI_API_KEY = process.env.GOOGLE_API_KEY;
+const GEMINI_API_KEY = process.env.GOOGLE_API_KEY; // keep this name consistent across routes
 if (!GEMINI_API_KEY) {
   throw new Error("GOOGLE_API_KEY is not set in the environment variables.");
 }
@@ -100,6 +101,12 @@ export async function POST(request: NextRequest) {
         difficultyRaw = formData.get("difficulty")?.toString() || "medium";
         numQuestionsStr = formData.get("numQuestions")?.toString() || "10";
         pdfFile = formData.get("pdfFile") as File | null;
+
+        // Allow sourceText in FormData as well (preferred over PDF if present)
+        const fdSource = formData.get("sourceText");
+        if (typeof fdSource === "string" && fdSource.trim()) {
+          extractedPdfText = fdSource;
+        }
       }
     } catch {
       // ignore and try JSON
@@ -110,6 +117,13 @@ export async function POST(request: NextRequest) {
       subject = body.subject || subject;
       difficultyRaw = body.difficulty || difficultyRaw;
       numQuestionsStr = String(body.numQuestions || numQuestionsStr);
+
+      // Allow sourceText via JSON (preferred over PDF if present)
+      const sourceTextFromClient =
+        typeof body.sourceText === "string" ? body.sourceText : "";
+      if (sourceTextFromClient) {
+        extractedPdfText = sourceTextFromClient;
+      }
     }
 
     if (!subject || !numQuestionsStr) {
@@ -124,7 +138,7 @@ export async function POST(request: NextRequest) {
 
     const numQuestions = parseInt(numQuestionsStr, 10);
 
-    // Basic guards
+    // Basic guards (apply only if a PDF was provided)
     if (pdfFile) {
       const mb = pdfFile.size / (1024 * 1024);
       if (mb > MAX_PDF_MB) {
@@ -145,8 +159,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Extract text
-    if (pdfFile) {
+    // Extract text from PDF *only if* we don't already have sourceText
+    if (pdfFile && !extractedPdfText) {
       try {
         // IMPORTANT: import the real parser to avoid pdf-parse debug mode
         const { default: pdfParse } = await import(
@@ -286,7 +300,12 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { message: "Quiz generated successfully!", quiz: quizItems },
+      {
+        message: "Quiz generated successfully!",
+        quiz: quizItems,
+        // helpful for the client to cache; undefined omits the field if not used
+        sourceTextUsed: extractedPdfText || undefined,
+      },
       { status: 200 }
     );
   } catch (error: any) {
