@@ -80,7 +80,11 @@ export function QuizForm({ defaultValues, onSubmit, isSubmitting }: Props) {
                 <span>Subject / Topic</span>
               </FormLabel>
               <FormControl>
-                <Input placeholder="e.g., World History" {...field} />
+                <Input
+                  placeholder="e.g., World History"
+                  {...field}
+                  disabled={isSubmitting}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -106,6 +110,7 @@ export function QuizForm({ defaultValues, onSubmit, isSubmitting }: Props) {
                     step={50}
                     onValueChange={setDifficultyFromSlider}
                     className="[&_[data-slot=slider-range]]:bg-[#b38a19]"
+                    disabled={isSubmitting}
                   />
                   <div className="flex justify-between mt-2 text-sm text-gray-500">
                     <span>Easy</span>
@@ -133,6 +138,7 @@ export function QuizForm({ defaultValues, onSubmit, isSubmitting }: Props) {
               <Select
                 value={String(field.value)}
                 onValueChange={(v) => field.onChange(Number(v))}
+                disabled={isSubmitting}
               >
                 <FormControl>
                   <SelectTrigger className="w-full">
@@ -169,6 +175,7 @@ export function QuizForm({ defaultValues, onSubmit, isSubmitting }: Props) {
                   onChange={(file) => field.onChange(file)}
                   accept=".pdf"
                   maxSizeMB={10}
+                  disabled={isSubmitting}
                 />
               </FormControl>
               <FormMessage />

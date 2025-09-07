@@ -185,8 +185,8 @@ export default function Home() {
 
   return (
     <div className="container mx-auto p-12 max-w-2xl bg-white rounded-lg shadow-lg">
-      <h1 className="text-4xl font-bold mb-8 text-center">
-        Welcome to QuizBee 🐝
+      <h1 className="text-2xl font-bold mb-8 text-center">
+        Test your knowledge with QuizBee 🐝
       </h1>
 
       {!generatedQuiz && (
@@ -202,9 +202,9 @@ export default function Home() {
 
       {generatedQuiz && !isQuizComplete && (
         <div className="mt-8 space-y-6">
+          <h2 className="text-xl font-bold text-center">Quiz: {subject}</h2>
           <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-bold text-center">Quiz: {subject}</h2>
-            <div className="flex gap-2">
+            <div className="flex justify-center items-center gap-3 w-full">
               <Button
                 variant={isPreviewMode ? "default" : "outline"}
                 onClick={() => setIsPreviewMode(!isPreviewMode)}

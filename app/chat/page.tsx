@@ -316,10 +316,7 @@ export default function ChatPage() {
               <h1 className="text-2xl font-bold text-gray-900">QuizBee Chat</h1>
               <p className="text-gray-600">Chat with your AI quiz assistant</p>
             </div>
-            <a
-              href="/"
-              className="text-blue-600 hover:text-blue-800 font-medium"
-            >
+            <a href="/" className="text-[#e38a19] hover:text-black font-medium">
               ← Back to Quiz
             </a>
           </div>

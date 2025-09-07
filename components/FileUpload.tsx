@@ -7,6 +7,7 @@ type FileUploadProps = {
   onChange: (file: File | null) => void;
   accept?: string;
   maxSizeMB?: number;
+  disabled?: boolean;
 };
 
 export function FileUpload({
@@ -14,10 +15,12 @@ export function FileUpload({
   onChange,
   accept = ".pdf",
   maxSizeMB = 10,
+  disabled = false,
 }: FileUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFiles = (files: FileList | null) => {
+    if (disabled) return;
     const file = files?.[0] ?? null;
     if (!file) return onChange(null);
     if (file.size > maxSizeMB * 1024 * 1024) {
@@ -32,9 +35,13 @@ export function FileUpload({
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
         e.preventDefault();
-        handleFiles(e.dataTransfer.files);
+        if (!disabled) handleFiles(e.dataTransfer.files);
       }}
-      className="rounded-lg border border-dashed p-6 text-center hover:bg-muted/30 transition"
+      className={`rounded-lg border border-dashed p-6 text-center transition ${
+        disabled
+          ? "opacity-50 cursor-not-allowed bg-gray-50"
+          : "hover:bg-muted/30 cursor-pointer"
+      }`}
     >
       <input
         ref={inputRef}
@@ -42,6 +49,7 @@ export function FileUpload({
         accept={accept}
         className="hidden"
         onChange={(e) => handleFiles(e.target.files)}
+        disabled={disabled}
       />
       <p className="text-sm text-muted-foreground">
         Drag & drop your file here
@@ -50,8 +58,9 @@ export function FileUpload({
       <Button
         variant="secondary"
         type="button"
-        onClick={() => inputRef.current?.click()}
-        className="bg-[#F8F7F2] text-black hover:bg-[#e0d9b3] cursor-pointer"
+        onClick={() => !disabled && inputRef.current?.click()}
+        disabled={disabled}
+        className="bg-[#F8F7F2] text-black hover:bg-[#e0d9b3] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Choose file
       </Button>
