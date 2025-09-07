@@ -105,6 +105,7 @@ export function QuizForm({ defaultValues, onSubmit, isSubmitting }: Props) {
                     max={100}
                     step={50}
                     onValueChange={setDifficultyFromSlider}
+                    className="[&_[data-slot=slider-range]]:bg-[#b38a19]"
                   />
                   <div className="flex justify-between mt-2 text-sm text-gray-500">
                     <span>Easy</span>
@@ -178,7 +179,7 @@ export function QuizForm({ defaultValues, onSubmit, isSubmitting }: Props) {
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-[#F8F7F2] text-black"
+          className="w-full bg-[#F8F7F2] text-black hover:bg-[#e0d9b3] cursor-pointer"
         >
           {isSubmitting ? "Generating..." : "Generate Quiz"}
         </Button>

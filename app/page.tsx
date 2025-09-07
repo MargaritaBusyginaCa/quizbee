@@ -192,7 +192,7 @@ export default function Home() {
       {!generatedQuiz && (
         <>
           {isLoading && (
-            <div className="text-center text-xl text-blue-600 mb-8">
+            <div className="text-center text-xl text-black-600 mb-8">
               Generating your quiz...
             </div>
           )}
@@ -208,10 +208,15 @@ export default function Home() {
               <Button
                 variant={isPreviewMode ? "default" : "outline"}
                 onClick={() => setIsPreviewMode(!isPreviewMode)}
+                className="bg-[#F8F7F2] text-black hover:bg-[#e0d9b3] cursor-pointer"
               >
                 {isPreviewMode ? "Take Quiz" : "Preview All"}
               </Button>
-              <Button variant="secondary" onClick={handleDiscard}>
+              <Button
+                variant="secondary"
+                onClick={handleDiscard}
+                className="bg-white border text-black hover:bg-[#e0d9b3] cursor-pointer"
+              >
                 Leave this quiz
               </Button>
             </div>
@@ -260,6 +265,7 @@ export default function Home() {
                   <Button
                     onClick={handlePreviousQuestion}
                     disabled={currentQuestionIndex === 0}
+                    className="bg-[#F8F7F2] text-black hover:bg-[#e0d9b3] cursor-pointer"
                   >
                     Previous
                   </Button>
@@ -267,6 +273,7 @@ export default function Home() {
                     <Button
                       onClick={handleNextQuestion}
                       disabled={!selectedAnswers[currentQuestionIndex]}
+                      className="bg-[#F8F7F2] text-black hover:bg-[#e0d9b3] cursor-pointer"
                     >
                       Next
                     </Button>
@@ -274,6 +281,7 @@ export default function Home() {
                     <Button
                       onClick={handleSubmitQuiz}
                       disabled={!selectedAnswers[currentQuestionIndex]}
+                      className="bg-[#F8F7F2] text-black hover:bg-[#e0d9b3] cursor-pointer"
                     >
                       Submit Quiz
                     </Button>
@@ -286,7 +294,7 @@ export default function Home() {
           <div className="text-center">
             <a
               href="/chat"
-              className="text-blue-600 hover:text-blue-800 font-medium"
+              className="text-black-600 hover:text-[#b38a19] hover:underline font-medium"
             >
               Modify this quiz →
             </a>

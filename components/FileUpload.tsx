@@ -51,6 +51,7 @@ export function FileUpload({
         variant="secondary"
         type="button"
         onClick={() => inputRef.current?.click()}
+        className="bg-[#F8F7F2] text-black hover:bg-[#e0d9b3] cursor-pointer"
       >
         Choose file
       </Button>
