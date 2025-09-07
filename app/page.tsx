@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { QuizForm, type QuizFormValues } from "@/components/QuizForm";
 import PreviewQuestions from "@/components/PreviewQuestions";
+import ScoreCard from "@/components/ScoreCard";
 
 type QuizQuestion = {
   questionText: string;
@@ -25,6 +26,8 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [subject, setSubject] = useState("");
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [isQuizComplete, setIsQuizComplete] = useState(false);
+  const [finalScore, setFinalScore] = useState(0);
 
   // ---- Hydrate from localStorage on mount and when window regains focus ----
   useEffect(() => {
@@ -151,17 +154,30 @@ export default function Home() {
     generatedQuiz.forEach((q, i) => {
       if (selectedAnswers[i] === q.correctAnswer) score++;
     });
-    alert(
-      `Quiz Submitted! Your score: ${score} out of ${generatedQuiz.length}`
-    );
-    setGeneratedQuiz(null);
-    clearPersistence(); // clear stored quiz after submit
+    setFinalScore(score);
+    setIsQuizComplete(true);
   };
 
   const handleDiscard = () => {
     setGeneratedQuiz(null);
     setSelectedAnswers([]);
     setCurrentQuestionIndex(0);
+    clearPersistence();
+  };
+
+  const handleRetakeQuiz = () => {
+    setIsQuizComplete(false);
+    setSelectedAnswers([]);
+    setCurrentQuestionIndex(0);
+    setFinalScore(0);
+  };
+
+  const handleNewQuiz = () => {
+    setGeneratedQuiz(null);
+    setSelectedAnswers([]);
+    setCurrentQuestionIndex(0);
+    setIsQuizComplete(false);
+    setFinalScore(0);
     clearPersistence();
   };
 
@@ -187,7 +203,7 @@ export default function Home() {
         </>
       )}
 
-      {generatedQuiz && (
+      {generatedQuiz && !isQuizComplete && (
         <div className="mt-8 space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-3xl font-bold text-center">Quiz: {subject}</h2>
@@ -279,6 +295,16 @@ export default function Home() {
             </a>
           </div>
         </div>
+      )}
+
+      {isQuizComplete && generatedQuiz && (
+        <ScoreCard
+          score={finalScore}
+          total={generatedQuiz.length}
+          subject={subject}
+          onRetakeQuiz={handleRetakeQuiz}
+          onNewQuiz={handleNewQuiz}
+        />
       )}
     </div>
   );
