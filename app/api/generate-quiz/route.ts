@@ -2,14 +2,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-export const runtime = "nodejs"; // pdf-parse needs Node
+export const runtime = "nodejs"; // pdf-parse (needs Node)
 
-// ---- Tuning ----
-const MAX_CHARS_SINGLE_PROMPT = 180_000; // safe margin for one-shot
-const CHUNK_SIZE = 60_000; // ~60k chars per chunk
-const MAX_PDF_MB = 25; // reject super-large uploads
+const MAX_CHARS_SINGLE_PROMPT = 180_000;
+const CHUNK_SIZE = 60_000;
+const MAX_PDF_MB = 25;
 
-// ---- Helpers ----
 function cleanText(t: string) {
   return t
     .replace(/\u0000/g, "")
@@ -62,15 +60,13 @@ ${perChunkCap ? `Generate up to ${perChunkCap} questions for this part.` : ""}
 `.trim();
 }
 
-// ---- Model ----
-const GEMINI_API_KEY = process.env.GOOGLE_API_KEY; // keep this name consistent across routes
+const GEMINI_API_KEY = process.env.GOOGLE_API_KEY;
 if (!GEMINI_API_KEY) {
   throw new Error("GOOGLE_API_KEY is not set in the environment variables.");
 }
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-// Centralized call: use string prompt; parse JSON; fall back to fenced JSON
 async function callModelJSON(prompt: string) {
   const result = await model.generateContent(prompt);
   const text = result.response.text();
@@ -81,7 +77,6 @@ async function callModelJSON(prompt: string) {
   }
 }
 
-// ---- Route ----
 export async function POST(request: NextRequest) {
   try {
     let subject = "";
@@ -90,7 +85,6 @@ export async function POST(request: NextRequest) {
     let pdfFile: File | null = null;
     let extractedPdfText = "";
 
-    // Prefer multipart/form-data; fall back to JSON
     let isFormData = false;
     try {
       const contentType = request.headers.get("content-type") || "";
@@ -102,15 +96,12 @@ export async function POST(request: NextRequest) {
         numQuestionsStr = formData.get("numQuestions")?.toString() || "10";
         pdfFile = formData.get("pdfFile") as File | null;
 
-        // Allow sourceText in FormData as well (preferred over PDF if present)
         const fdSource = formData.get("sourceText");
         if (typeof fdSource === "string" && fdSource.trim()) {
           extractedPdfText = fdSource;
         }
       }
-    } catch {
-      // ignore and try JSON
-    }
+    } catch {}
 
     if (!isFormData) {
       const body = await request.json().catch(() => ({}));
@@ -118,7 +109,6 @@ export async function POST(request: NextRequest) {
       difficultyRaw = body.difficulty || difficultyRaw;
       numQuestionsStr = String(body.numQuestions || numQuestionsStr);
 
-      // Allow sourceText via JSON (preferred over PDF if present)
       const sourceTextFromClient =
         typeof body.sourceText === "string" ? body.sourceText : "";
       if (sourceTextFromClient) {
@@ -138,7 +128,6 @@ export async function POST(request: NextRequest) {
 
     const numQuestions = parseInt(numQuestionsStr, 10);
 
-    // Basic guards (apply only if a PDF was provided)
     if (pdfFile) {
       const mb = pdfFile.size / (1024 * 1024);
       if (mb > MAX_PDF_MB) {
@@ -159,10 +148,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Extract text from PDF *only if* we don't already have sourceText
     if (pdfFile && !extractedPdfText) {
       try {
-        // IMPORTANT: import the real parser to avoid pdf-parse debug mode
         const { default: pdfParse } = await import(
           "pdf-parse/lib/pdf-parse.js"
         );
@@ -181,7 +168,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // normalize difficulty
     let difficultyText: "Easy" | "Medium" | "Hard";
     if (["easy", "medium", "hard"].includes(difficultyRaw)) {
       difficultyText = (difficultyRaw[0].toUpperCase() +
@@ -191,7 +177,6 @@ export async function POST(request: NextRequest) {
       difficultyText = n < 33 ? "Easy" : n < 66 ? "Medium" : "Hard";
     }
 
-    // ---- Generation (single or chunked) ----
     let quizItems: any[] = [];
 
     if (extractedPdfText) {
@@ -279,9 +264,7 @@ export async function POST(request: NextRequest) {
                 }
               }
             }
-          } catch {
-            // ignore
-          }
+          } catch {}
         }
       }
     } else {
@@ -303,7 +286,6 @@ export async function POST(request: NextRequest) {
       {
         message: "Quiz generated successfully!",
         quiz: quizItems,
-        // helpful for the client to cache; undefined omits the field if not used
         sourceTextUsed: extractedPdfText || undefined,
       },
       { status: 200 }

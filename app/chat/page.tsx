@@ -11,7 +11,6 @@ type ModPlan =
       type: "difficulty" | "topic" | "count" | "append" | "other";
       action?: "increase" | "decrease" | "change";
       value?: any;
-      // append specifics
       count?: number;
       subtopic?: string;
     }
@@ -51,7 +50,6 @@ export default function ChatPage() {
   }>(null);
   const [sourceText, setSourceText] = useState<string>("");
 
-  // --- boot: load quiz + params from localStorage ---
   useEffect(() => {
     try {
       const stored = localStorage.getItem(LS_QUIZ);
@@ -62,12 +60,9 @@ export default function ChatPage() {
 
       const st = localStorage.getItem(LS_TEXT);
       if (st) setSourceText(st);
-    } catch {
-      // ignore
-    }
+    } catch {}
   }, []);
 
-  // --- utils ---
   const persistQuiz = (quiz: PreviewQuestion[]) => {
     try {
       localStorage.setItem(LS_QUIZ, JSON.stringify(quiz));
@@ -154,7 +149,6 @@ export default function ChatPage() {
     [setEditQuestions]
   );
 
-  // --- regenerate according to a "plan" from the model ---
   const regenerateWithPlan = useCallback(
     async (plan: ModPlan) => {
       if (!lastForm) return;
@@ -171,25 +165,21 @@ export default function ChatPage() {
         subject = String(plan.value);
       }
 
-      // count change — explicit new total
       if (plan.type === "count" && Number.isFinite(Number(plan.value))) {
         desiredCount = Number(plan.value);
       }
 
-      // append N more (keeps existing, adds new)
       if (plan.type === "append" && Number.isFinite(Number(plan.count))) {
         desiredCount = currentLen + Number(plan.count);
       }
 
-      // branch behaviors
       if (desiredCount > currentLen) {
-        // append diff more
         const remaining = desiredCount - currentLen;
 
         const body = {
           subject,
           difficulty,
-          numQuestions: remaining, // generate only the delta
+          numQuestions: remaining,
           ...(sourceText ? { sourceText } : {}),
         };
 
@@ -214,7 +204,6 @@ export default function ChatPage() {
         const merged = mergeAppend(editQuestions, extra, desiredCount);
         applyReplacementQuiz(merged);
 
-        // persist form & source text
         const nextForm = {
           subject,
           difficulty,
@@ -228,7 +217,6 @@ export default function ChatPage() {
       }
 
       if (desiredCount < currentLen) {
-        // just slice down; keep easiest behavior local
         const trimmed = editQuestions.slice(0, desiredCount);
         applyReplacementQuiz(trimmed);
         const nextForm = {
@@ -241,7 +229,6 @@ export default function ChatPage() {
         return;
       }
 
-      // same count but difficulty/topic changed -> full regenerate
       if (
         plan.type === "difficulty" ||
         plan.type === "topic" ||
@@ -288,25 +275,20 @@ export default function ChatPage() {
     [editQuestions, lastForm, sourceText, applyReplacementQuiz]
   );
 
-  // --- called by ChatDialog after it hits /api/chat ---
   const handleQuizModification = async (payload: any) => {
-    // 1) apply full replacement quiz, if provided
     if (payload?.quiz && Array.isArray(payload.quiz)) {
       applyReplacementQuiz(payload.quiz as PreviewQuestion[]);
     }
 
-    // 2) apply in-place patches, if provided
     if (payload?.patches && Array.isArray(payload.patches)) {
       applyPatches(payload.patches as Patch[]);
     }
 
-    // 3) execute a plan (harder/easier/topic/change count/append)
     if (payload?.modification) {
       await regenerateWithPlan(payload.modification as ModPlan);
     }
   };
 
-  // Context for the ChatDialog to send along with the message
   const getContext = useCallback(() => {
     return {
       quiz: editQuestions,
@@ -322,7 +304,6 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Main content area */}
       <div className="flex-1 flex flex-col">
         <div className="bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
@@ -356,11 +337,10 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* Chat dialog sidebar */}
       <div className="w-96 h-full">
         <ChatDialog
-          getContext={getContext} // let it send quiz + meta
-          onQuizModification={handleQuizModification} // handle model output
+          getContext={getContext}
+          onQuizModification={handleQuizModification}
         />
       </div>
     </div>

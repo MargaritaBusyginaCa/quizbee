@@ -50,9 +50,7 @@ export default function Home() {
           const last = JSON.parse(lf);
           if (last?.subject) setSubject(String(last.subject));
         }
-      } catch {
-        // ignore
-      }
+      } catch {}
     };
 
     hydrate();
@@ -96,7 +94,7 @@ export default function Home() {
 
     const formData = new FormData();
     formData.append("subject", values.subject);
-    formData.append("difficulty", values.difficulty); // "easy" | "medium" | "hard"
+    formData.append("difficulty", values.difficulty);
     formData.append("numQuestions", String(values.numberOfQuestions));
     if (values.pdfFile instanceof File) {
       formData.append("pdfFile", values.pdfFile);
@@ -272,7 +270,6 @@ export default function Home() {
             )
           )}
 
-          {/* Link to chat */}
           <div className="text-center">
             <a
               href="/chat"
