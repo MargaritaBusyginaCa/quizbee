@@ -51,31 +51,39 @@ Input:
 - Current quiz (optional, truncated): ${quiz ? JSON.stringify(quiz) : "none"}
 - Meta (optional): ${meta ? JSON.stringify(meta) : "none"}
 
+Output: JSON ONLY (no prose outside JSON). Choose one or more of:
+1) A plan:
+{
+  "content": "<brief confirmation>",
+  "modification": {
+    "type": "difficulty" | "topic" | "count" | "append" | "other",
+    "action": "increase" | "decrease" | "change",
+    "value": "<new value if applicable>",
+    "count": 5,              // for type=append (number of new questions)
+    "subtopic": "..."        // optional hint for generation
+  }
+}
+
+2) Direct in-place edits to the current quiz:
+{
+  "content": "<brief confirmation>",
+  "patches": [
+    { "op": "replace", "index": 2, "question": { "questionText": "...", "options": ["a","b","c","d"], "correctAnswer": "a" } },
+    { "op": "update", "index": 0, "question": { "questionText": "..." } },
+    { "op": "delete", "index": 4 },
+    { "op": "insertAfter", "index": 1, "question": { ... } }
+  ]
+}
+
+3) A full replacement quiz:
+{
+  "content": "<brief>",
+  "quiz": [ { "questionText": "...", "options": ["...","...","...","..."], "correctAnswer": "..." } ]
+}
+
 Rules:
-- Respond with JSON ONLY (no extra prose, no code blocks unless it's \`\`\`json).
-- If the user asks for parameter changes (harder/easier, more/less questions, change topic),
-  return:
-  {
-    "content": "<brief confirmation>",
-    "modification": {
-      "type": "difficulty" | "count" | "topic" | "other",
-      "action": "increase" | "decrease" | "change",
-      "value": "<new value if applicable>"
-    }
-  }
-
-- If the user asks to rewrite/replace/adjust specific questions or styles,
-  return a full edited quiz:
-  {
-    "content": "<brief confirmation>",
-    "quiz": [
-      { "questionText": "...", "options": ["...","...","...","..."], "correctAnswer": "..." }
-    ]
-  }
-
-- If both are needed, include both "modification" and "quiz".
-- Keep questions unambiguous; ensure each "options" array has exactly 4 choices and one correctAnswer.
-- JSON ONLY. No commentary outside JSON.
+- Each "options" array must have exactly 4 strings and one "correctAnswer" that matches one option.
+- Use "patches" when the user asks to tweak specific questions; use "modification" when they ask to change topic, difficulty, or question count; use "quiz" when rewriting everything.
 `.trim();
 
     const resp = await model.generateContent(prompt);
